@@ -17,11 +17,11 @@ import { getBooks } from '../storage/bookStorage';
 import { Book } from '../types/Book';
 
 export default function HomeScreen() {
-  // state for list of books
+  // State for list of books from database
   const [books, setBooks] = useState<Book[]>([]);
-  // state for search input
+  // State for search bar input
   const [searchQuery, setSearchQuery] = useState('');
-  // state for pull-to-refresh
+  // State for pull-to-refresh functionality
   const [refreshing, setRefreshing] = useState(false);
   
   const router = useRouter();
@@ -30,38 +30,38 @@ export default function HomeScreen() {
 
   const FIXED_GREEN = '#0a7ea4';
 
-  // function to fetch books from storage
+  // Fetches the list of books from the storage service
   const fetchBooks = async () => {
     const allBooks = await getBooks();
     setBooks(allBooks || []);
   };
 
-  // refresh books when screen is focused
+  // Automatically refresh books when the user navigates back to this screen
   useFocusEffect(
     useCallback(() => {
       fetchBooks();
     }, [])
   );
 
-  // pull-to-refresh handler
+  // Handles the pull-to-refresh action
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchBooks();
     setRefreshing(false);
   };
 
-  // filter books by search query
+  // Filters the book list based on user search query
   const filteredBooks = books.filter((book) =>
     book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     book.author.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // open book details screen
+  // Navigates to the specific book details page
   const handleOpenBook = (id: string) => {
     router.push(`/book/${id}`);
   };
 
-  // render when book list is empty
+  // Component to display when the library is empty
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Icon name="book-open-variant" size={64} color={theme.icon} />
@@ -76,9 +76,8 @@ export default function HomeScreen() {
   );
 
   return (
-    // main container with background color based on theme
     <View style={[styles.container, { backgroundColor: theme.background }]}> 
-      {/* header with title and add button */}
+      {/* Header section with title and add button */}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>My Library</Text>
         <TouchableOpacity 
@@ -89,7 +88,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* search bar */}
+      {/* Search bar section */}
       <View style={[styles.searchContainer, { backgroundColor: theme.cardBackground }]}> 
         <Icon name="magnify" size={20} color={theme.icon} />
         <TextInput
@@ -106,7 +105,7 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* list of books */}
+      {/* Main list of books */}
       <FlatList
         data={filteredBooks}
         keyExtractor={(item) => item.id}
@@ -117,9 +116,13 @@ export default function HomeScreen() {
           />
         )}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={renderEmptyState} // show when no books
+        ListEmptyComponent={renderEmptyState}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={FIXED_GREEN} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor={FIXED_GREEN} 
+          />
         }
       />
     </View>

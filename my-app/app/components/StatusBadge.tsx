@@ -3,10 +3,11 @@ import { View, Text, StyleSheet } from 'react-native';
 import { BookStatus } from '../types/Book';
 
 interface StatusBadgeProps {
-  status: BookStatus; // status of the book (planned, reading, finished)
+  // Current status of the book (planned, reading, finished)
+  status: BookStatus;
 }
 
-// colors for each status
+// Maps book status to specific theme colors
 const STATUS_COLORS: Record<BookStatus, string> = {
   planned: '#FFA500',
   reading: '#1E90FF',
@@ -14,11 +15,16 @@ const STATUS_COLORS: Record<BookStatus, string> = {
 };
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
-  const backgroundColor = STATUS_COLORS[status]; // get color based on status
+  // Get the appropriate background color for the badge
+  const backgroundColor = STATUS_COLORS[status];
 
   return (
-    <View style={[styles.badge, { backgroundColor }]}> {/* badge background */}
-      <Text style={styles.text}>{status.toUpperCase()} {/* show status text */}</Text>
+    /* Badge container with dynamic background color */
+    <View style={[styles.badge, { backgroundColor }]}>
+      {/* Uppercase status label */}
+      <Text style={styles.text}>
+        {status.toUpperCase()}
+      </Text>
     </View>
   );
 };
