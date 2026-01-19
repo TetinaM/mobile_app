@@ -6,15 +6,15 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface BookCardProps {
-  book: Book; // the book data to display
-  onPress?: () => void; // optional function when card is pressed
+  book: Book;
+  onPress?: () => void;
 }
 
 const BookCard: React.FC<BookCardProps> = ({ book, onPress }) => {
-  const colorScheme = useColorScheme(); // get current theme
-  const theme = Colors[colorScheme ?? 'light']; // get colors for current theme
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
 
-  if (!book) return null; // if no book data, render nothing
+  if (!book) return null;
 
   return (
     <TouchableOpacity 
@@ -25,14 +25,14 @@ const BookCard: React.FC<BookCardProps> = ({ book, onPress }) => {
           shadowColor: colorScheme === 'dark' ? '#000' : '#000',
         }
       ]} 
-      onPress={onPress} // run function when card is pressed
+      onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.row}>
-        <Text style={[styles.title, { color: theme.text }]}>{book.title}</Text> {/* show book title */}
-        <StatusBadge status={book.status} /> {/* show status badge */}
+        <Text style={[styles.title, { color: theme.text }]}>{book.title}</Text>
+        <StatusBadge status={book.status} />
       </View>
-      <Text style={[styles.author, { color: theme.icon }]}>{book.author}</Text> {/* show book author */}
+      <Text style={[styles.author, { color: theme.icon }]}>{book.author}</Text>
     </TouchableOpacity>
   );
 };
