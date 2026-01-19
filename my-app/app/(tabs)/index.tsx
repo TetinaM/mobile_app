@@ -1,98 +1,198 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  RefreshControl,
+} from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Icon } from '../components/Icon';
+import BookCard from '../components/BookCard';
+import { getBooks } from '../storage/bookStorage';
+import { Book } from '../types/Book';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  // state for list of books
+  const [books, setBooks] = useState<Book[]>([]);
+  // state for search input
+  const [searchQuery, setSearchQuery] = useState('');
+  // state for pull-to-refresh
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  const FIXED_GREEN = '#0a7ea4';
+
+  // function to fetch books from storage
+  const fetchBooks = async () => {
+    const allBooks = await getBooks();
+    setBooks(allBooks || []);
+  };
+
+  // refresh books when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      fetchBooks();
+    }, [])
+  );
+
+  // pull-to-refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchBooks();
+    setRefreshing(false);
+  };
+
+  // filter books by search query
+  const filteredBooks = books.filter((book) =>
+    book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    book.author.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // open book details screen
+  const handleOpenBook = (id: string) => {
+    router.push(`/book/${id}`);
+  };
+
+  // render when book list is empty
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Icon name="book-open-variant" size={64} color={theme.icon} />
+      <Text style={[styles.emptyText, { color: theme.text }]}>No books found</Text>
+      <TouchableOpacity 
+        style={[styles.emptyButton, { backgroundColor: FIXED_GREEN }]}
+        onPress={() => router.push('/book/create')}
+      >
+        <Text style={styles.emptyButtonText}>Add your first book</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  return (
+    // main container with background color based on theme
+    <View style={[styles.container, { backgroundColor: theme.background }]}> 
+      {/* header with title and add button */}
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>My Library</Text>
+        <TouchableOpacity 
+          style={[styles.addButton, { backgroundColor: FIXED_GREEN }]}
+          onPress={() => router.push('/book/create')}
+        >
+          <Icon name="plus" size={24} color="#FFF" />
+        </TouchableOpacity>
+      </View>
+
+      {/* search bar */}
+      <View style={[styles.searchContainer, { backgroundColor: theme.cardBackground }]}> 
+        <Icon name="magnify" size={20} color={theme.icon} />
+        <TextInput
+          style={[styles.searchInput, { color: theme.text }]}
+          placeholder="Search by title or author..."
+          placeholderTextColor={theme.icon}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Icon name="close-circle" size={18} color={theme.icon} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* list of books */}
+      <FlatList
+        data={filteredBooks}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <BookCard
+            book={item}
+            onPress={() => handleOpenBook(item.id)}
+          />
+        )}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={renderEmptyState} // show when no books
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={FIXED_GREEN} />
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+  },
+  header: {
+    marginTop: 60,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  addButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginHorizontal: 20,
+    paddingHorizontal: 15,
+    height: 50,
+    borderRadius: 12,
+    marginBottom: 20,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 16,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 100,
+    flexGrow: 1,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 100,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  emptyButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
+  emptyButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
