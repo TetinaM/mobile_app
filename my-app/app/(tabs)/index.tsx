@@ -1,130 +1,70 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  RefreshControl,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { getBooks } from '../../storage/bookStorage';
+import { Book } from '../../types/Book';
+import BookCard from '../../components/BookCard';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Icon } from '../components/Icon';
-import BookCard from '../components/BookCard';
-import { getBooks } from '../storage/bookStorage';
-import { Book } from '../types/Book';
+import { Icon } from '../../components/Icon';
 
 export default function HomeScreen() {
-  // State for list of books from database
-  const [books, setBooks] = useState<Book[]>([]);
-  // State for search bar input
-  const [searchQuery, setSearchQuery] = useState('');
-  // State for pull-to-refresh functionality
-  const [refreshing, setRefreshing] = useState(false);
-  
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  
+  const [books, setBooks] = useState<Book[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const FIXED_GREEN = '#0a7ea4';
-
-  // Fetches the list of books from the storage service
-  const fetchBooks = async () => {
-    const allBooks = await getBooks();
-    setBooks(allBooks || []);
+  const loadBooks = async () => {
+    const data = await getBooks();
+    setBooks(data);
   };
 
-  // Automatically refresh books when the user navigates back to this screen
   useFocusEffect(
     useCallback(() => {
-      fetchBooks();
+      loadBooks();
     }, [])
   );
 
-  // Handles the pull-to-refresh action
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchBooks();
+    await loadBooks();
     setRefreshing(false);
   };
 
-  // Filters the book list based on user search query
-  const filteredBooks = books.filter((book) =>
-    book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    book.author.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  return (
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: theme.text }]}>My Library</Text>
+      </View>
 
-  // Navigates to the specific book details page
-  const handleOpenBook = (id: string) => {
-    router.push(`/book/${id}`);
-  };
+      <FlatList
+        data={books}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <BookCard 
+            book={item} 
+            onPress={() => router.push(`/book/${item.id}`)} 
+          />
+        )}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={{ color: theme.icon }}>No books found. Add one!</Text>
+          </View>
+        }
+        contentContainerStyle={{ paddingBottom: 100 }}
+      />
 
-  // Component to display when the library is empty
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Icon name="book-open-variant" size={64} color={theme.icon} />
-      <Text style={[styles.emptyText, { color: theme.text }]}>No books found</Text>
       <TouchableOpacity 
-        style={[styles.emptyButton, { backgroundColor: FIXED_GREEN }]}
+        style={styles.fab} 
         onPress={() => router.push('/book/create')}
       >
-        <Text style={styles.emptyButtonText}>Add your first book</Text>
+        <Icon name="plus" size={30} color="#FFF" />
       </TouchableOpacity>
-    </View>
-  );
-
-  return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}> 
-      {/* Header section with title and add button */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>My Library</Text>
-        <TouchableOpacity 
-          style={[styles.addButton, { backgroundColor: FIXED_GREEN }]}
-          onPress={() => router.push('/book/create')}
-        >
-          <Icon name="plus" size={24} color="#FFF" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Search bar section */}
-      <View style={[styles.searchContainer, { backgroundColor: theme.cardBackground }]}> 
-        <Icon name="magnify" size={20} color={theme.icon} />
-        <TextInput
-          style={[styles.searchInput, { color: theme.text }]}
-          placeholder="Search by title or author..."
-          placeholderTextColor={theme.icon}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Icon name="close-circle" size={18} color={theme.icon} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Main list of books */}
-      <FlatList
-        data={filteredBooks}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <BookCard
-            book={item}
-            onPress={() => handleOpenBook(item.id)}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={renderEmptyState}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            tintColor={FIXED_GREEN} 
-          />
-        }
-      />
     </View>
   );
 }
@@ -132,70 +72,30 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingHorizontal: 20,
   },
   header: {
     marginTop: 60,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 20,
   },
-  headerTitle: {
-    fontSize: 28,
+  title: {
+    fontSize: 32,
     fontWeight: 'bold',
-  },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 20,
-    paddingHorizontal: 15,
-    height: 50,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 100,
-    flexGrow: 1,
   },
   emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    marginTop: 50,
     alignItems: 'center',
-    marginTop: 100,
   },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  emptyButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-  },
-  emptyButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+  fab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#0a7ea4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,
   },
 });
