@@ -6,19 +6,16 @@ import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 export const HapticTab: React.FC<BottomTabBarButtonProps> = (props) => {
   const { onPress, children, ...rest } = props;
 
-  // Triggers haptic feedback and executes the original onPress navigation action
+  // Вибрация при нажатии (только моб. устройства)
   const handlePress = (event: any) => {
-    // Selection feedback is only available on iOS and Android
     if (Platform.OS !== 'web') {
       Haptics.selectionAsync();
     }
-    
     if (onPress) {
       onPress(event);
     }
   };
 
-  // Extracting delayLongPress to avoid passing unsupported props to TouchableOpacity
   const { delayLongPress, ...touchableProps } = rest as any;
 
   return (

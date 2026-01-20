@@ -12,30 +12,33 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+// ВАЖНО: Добавили DateTimePickerAndroid
+import DateTimePicker, { DateTimePickerAndroid, DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import uuid from 'react-native-uuid';
-import { addBook } from '../../storage/bookStorage';
-import { Book } from '../../types/Book';
-import { scheduleReadingReminder } from '../../services/notifications';
+
+// ВАЖНО: Пути изменены на ../../../ (выход в корень проекта)
+// Если вы НЕ перенесли папки, верните их назад на ../../
+import { addBook } from '../../../storage/bookStorage';
+import { Book } from '../../../types/Book';
+import { scheduleReadingReminder } from '../../../services/notifications';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Icon } from '../../components/Icon';
+import { Icon } from '@/components/Icon';
 
 export default function CreateBookScreen() {
-  const router = useRouter(); // router for navigation
-  const colorScheme = useColorScheme(); // get current theme
+  const router = useRouter();
+  const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
-  const FIXED_ACCENT_COLOR = '#0a7ea4'; // color for labels and buttons
+  const FIXED_ACCENT_COLOR = '#0a7ea4';
 
-  // states for form fields
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [status, setStatus] = useState<'planned' | 'reading' | 'finished'>('planned');
   const [date, setDate] = useState(new Date());
+  // showPicker теперь используется ТОЛЬКО для iOS
   const [showPicker, setShowPicker] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
 
-  // function to reset form
   const handleReset = () => {
     if (!title && !author && !reminderEnabled) return;
     Alert.alert('Reset Form', 'Are you sure you want to clear all fields?', [
@@ -54,21 +57,45 @@ export default function CreateBookScreen() {
     ]);
   };
 
-  // function to handle date change in picker
+  // Обновленная функция изменения даты
   const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (Platform.OS === 'android') setShowPicker(false); // hide picker on android after selection
-    if (selectedDate) {
+    if (Platform.OS === 'ios') {
+       // На iOS мы просто скрываем/показываем компонент по желанию, но здесь логика
+       // может отличаться. Обычно на iOS пикер всегда виден или скрывается кнопкой Done.
+       // Если используем модальный пикер:
+       // setShowPicker(false); 
+    }
+    
+    if (event.type === 'set' && selectedDate) {
       setDate(selectedDate);
-      setReminderEnabled(true); // enable reminder if date selected
+      setReminderEnabled(true);
+    } else if (event.type === 'dismissed') {
+      // Если пользователь отменил выбор на Android
     }
   };
 
-  // function to save book
+  // Новая функция для открытия календаря
+  const showDatepicker = () => {
+    if (Platform.OS === 'android') {
+      // ИСПРАВЛЕНИЕ: Используем императивный API для Android
+      DateTimePickerAndroid.open({
+        value: date,
+        onChange: onDateChange,
+        mode: 'date',
+        is24Hour: true,
+        minimumDate: new Date(),
+      });
+    } else {
+      // Для iOS просто переключаем стейт
+      setShowPicker(!showPicker);
+    }
+  };
+
   const handleSave = async () => {
-    if (!title.trim()) return; // do not save empty title
+    if (!title.trim()) return;
 
     const book: Book = {
-      id: uuid.v4().toString(), // generate unique id
+      id: uuid.v4().toString(),
       title: title.trim(),
       author: author.trim(),
       status,
@@ -76,22 +103,21 @@ export default function CreateBookScreen() {
       createdAt: new Date().toISOString(),
     };
 
-    await addBook(book); // save to storage
+    await addBook(book);
+    
     if (reminderEnabled) {
-      await scheduleReadingReminder(book.id, book.title, date); // schedule reminder
+      await scheduleReadingReminder(book.id, book.title, date);
     }
 
-    router.back(); // go back to previous screen
+    router.back();
   };
 
   return (
-    // wrap content to avoid keyboard overlapping inputs
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
     >
       <ScrollView style={[styles.container, { backgroundColor: theme.background }]}> 
-        {/* header with title and reset button */}
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: theme.text }]}>New Book</Text>
           <TouchableOpacity onPress={handleReset} style={styles.resetButton}>
@@ -100,7 +126,6 @@ export default function CreateBookScreen() {
         </View>
 
         <View style={styles.form}>
-          {/* title input */}
           <Text style={[styles.label, { color: FIXED_ACCENT_COLOR }]}>Book Title</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text }]}
@@ -110,7 +135,6 @@ export default function CreateBookScreen() {
             onChangeText={setTitle}
           />
 
-          {/* author input */}
           <Text style={[styles.label, { color: FIXED_ACCENT_COLOR }]}>Author</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text }]}
@@ -120,7 +144,6 @@ export default function CreateBookScreen() {
             onChangeText={setAuthor}
           />
 
-          {/* status picker */}
           <Text style={[styles.label, { color: FIXED_ACCENT_COLOR }]}>Reading Status</Text>
           <View style={[styles.pickerContainer, { backgroundColor: theme.cardBackground }]}> 
             <Picker
@@ -135,11 +158,10 @@ export default function CreateBookScreen() {
             </Picker>
           </View>
 
-          {/* reminder button */}
           <Text style={[styles.label, { color: FIXED_ACCENT_COLOR }]}>Reminder</Text>
           <TouchableOpacity 
             style={[styles.dateButton, { backgroundColor: theme.cardBackground }]}
-            onPress={() => setShowPicker(true)}
+            onPress={showDatepicker}
           >
             <View style={styles.dateButtonContent}>
               <Icon 
@@ -155,18 +177,17 @@ export default function CreateBookScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* date picker for reminder */}
-          {showPicker && (
+          {/* DateTimePicker рендерится ТОЛЬКО на iOS через условие */}
+          {Platform.OS === 'ios' && showPicker && (
             <DateTimePicker
               value={date}
               mode="datetime"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              display="spinner"
               onChange={onDateChange}
               minimumDate={new Date()}
             />
           )}
 
-          {/* save button */}
           <TouchableOpacity 
             style={[styles.saveButton, { backgroundColor: FIXED_ACCENT_COLOR }]} 
             onPress={handleSave}

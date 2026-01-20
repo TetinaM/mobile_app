@@ -12,36 +12,36 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { getBookById, updateBook, deleteBook } from '../../storage/bookStorage';
-import { Book } from '../../types/Book';
-import { scheduleReadingReminder } from '../../services/notifications';
+import DateTimePicker, { DateTimePickerEvent, DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+
+// Используем @/ для всех импортов
+import { getBookById, updateBook, deleteBook } from '@/storage/bookStorage';
+import { Book } from '@/types/Book';
+import { scheduleReadingReminder } from '@/services/notifications';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Icon } from '../../components/Icon';
+import { Icon } from '@/components/Icon';
 
 export default function BookDetailsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>(); // get book id from route parameters
-  const router = useRouter(); // navigation object to go back or push screens
-  const colorScheme = useColorScheme(); // get current theme (light/dark)
-  const theme = Colors[colorScheme ?? 'light']; // select colors based on theme
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
 
-  const FIXED_ACCENT = '#0a7ea4'; // accent color for labels and buttons
+  const FIXED_ACCENT = '#0a7ea4';
 
-  const [book, setBook] = useState<Book | null>(null); // store book details
-  const [showPicker, setShowPicker] = useState(false); // show/hide date picker
+  const [book, setBook] = useState<Book | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
 
-  // load book data when screen opens
   useEffect(() => {
     if (!id) return;
     const fetchBook = async () => {
-      const b = await getBookById(id); // get book from storage
-      setBook(b); // save book in state
+      const b = await getBookById(id);
+      setBook(b);
     };
     fetchBook();
   }, [id]);
 
-  // show loading text if book is not ready
   if (!book) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center' }]}>
@@ -50,25 +50,41 @@ export default function BookDetailsScreen() {
     );
   }
 
-  // handle changes from the date picker
   const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (Platform.OS === 'android') setShowPicker(false); // hide picker on android
+    if (Platform.OS === 'android') {
+        // На Android пикер закрывается сам
+    } else {
+        setShowPicker(false); // На iOS закрываем вручную
+    }
+
     if (event.type === 'set' && selectedDate) {
-      setBook({ ...book, reminderTime: selectedDate.toISOString() }); // update reminder time
+      setBook({ ...book, reminderTime: selectedDate.toISOString() });
     }
   };
 
-  // save updated book data
+  const showDatepicker = () => {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: book.reminderTime ? new Date(book.reminderTime) : new Date(),
+        onChange: onDateChange,
+        mode: 'date', // <--- ИСПРАВЛЕНО: было 'datetime', стало 'date'
+        is24Hour: true,
+        minimumDate: new Date(),
+      });
+    } else {
+      setShowPicker(true);
+    }
+  };
+
   const handleUpdate = async () => {
-    if (!book.title.trim()) return; // don't save if title is empty
-    await updateBook(book); // update book in storage
+    if (!book.title.trim()) return;
+    await updateBook(book);
     if (book.reminderTime) {
-      await scheduleReadingReminder(book.id, book.title, new Date(book.reminderTime)); // schedule reminder
+      await scheduleReadingReminder(book.id, book.title, new Date(book.reminderTime));
     }
-    router.back(); // go back to previous screen
+    router.back();
   };
 
-  // confirm deletion of book
   const confirmDelete = () => {
     Alert.alert('Delete Book', 'Are you sure you want to remove this book from your library?', [
       { text: 'Cancel', style: 'cancel' },
@@ -76,14 +92,13 @@ export default function BookDetailsScreen() {
         text: 'Delete', 
         style: 'destructive', 
         onPress: async () => {
-          await deleteBook(book.id); // delete book from storage
-          router.back(); // go back
+          await deleteBook(book.id);
+          router.back();
         } 
       },
     ]);
   };
 
-  // remove reminder time
   const clearReminder = () => {
     setBook({ ...book, reminderTime: undefined });
   };
@@ -94,7 +109,6 @@ export default function BookDetailsScreen() {
       style={{ flex: 1 }}
     >
       <ScrollView style={[styles.container, { backgroundColor: theme.background }]}> 
-        {/* header with back and delete buttons */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Icon name="chevron-left" size={30} color={theme.text} />
@@ -105,30 +119,26 @@ export default function BookDetailsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* book details form */}
         <View style={styles.form}>
-          {/* title input */}
           <Text style={[styles.label, { color: FIXED_ACCENT }]}>Title</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text }]}
             value={book.title}
-            onChangeText={(text) => setBook({ ...book, title: text })} // update title in state
+            onChangeText={(text) => setBook({ ...book, title: text })}
           />
 
-          {/* author input */}
           <Text style={[styles.label, { color: FIXED_ACCENT }]}>Author</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text }]}
             value={book.author}
-            onChangeText={(text) => setBook({ ...book, author: text })} // update author in state
+            onChangeText={(text) => setBook({ ...book, author: text })}
           />
 
-          {/* status picker */}
           <Text style={[styles.label, { color: FIXED_ACCENT }]}>Status</Text>
           <View style={[styles.pickerContainer, { backgroundColor: theme.cardBackground }]}> 
             <Picker
               selectedValue={book.status}
-              onValueChange={(v) => setBook({ ...book, status: v as any })} // update status
+              onValueChange={(v) => setBook({ ...book, status: v as any })}
               dropdownIconColor={FIXED_ACCENT}
               style={{ color: theme.text }}
             >
@@ -138,7 +148,6 @@ export default function BookDetailsScreen() {
             </Picker>
           </View>
 
-          {/* reminder label with remove button */}
           <View style={styles.labelRow}>
             <Text style={[styles.label, { color: FIXED_ACCENT }]}>Reminder</Text>
             {book.reminderTime && (
@@ -148,10 +157,9 @@ export default function BookDetailsScreen() {
             )}
           </View>
 
-          {/* reminder button */}
           <TouchableOpacity 
             style={[styles.dateButton, { backgroundColor: theme.cardBackground }]}
-            onPress={() => setShowPicker(true)} // show date picker
+            onPress={showDatepicker}
           >
             <View style={styles.dateButtonContent}>
               <Icon 
@@ -167,21 +175,20 @@ export default function BookDetailsScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* date picker component */}
-          {showPicker && (
+          {/* DateTimePicker только для iOS */}
+          {Platform.OS === 'ios' && showPicker && (
             <DateTimePicker
-              value={book.reminderTime ? new Date(book.reminderTime) : new Date()} // default value
+              value={book.reminderTime ? new Date(book.reminderTime) : new Date()}
               mode="datetime"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={onDateChange} // update reminder
-              minimumDate={new Date()} // cannot pick past date
+              display="spinner"
+              onChange={onDateChange}
+              minimumDate={new Date()}
             />
           )}
 
-          {/* save changes button */}
           <TouchableOpacity 
             style={[styles.saveButton, { backgroundColor: FIXED_ACCENT }]} 
-            onPress={handleUpdate} // save book changes
+            onPress={handleUpdate}
           >
             <Text style={styles.saveButtonText}>Save Changes</Text>
           </TouchableOpacity>
@@ -192,78 +199,18 @@ export default function BookDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  header: {
-    marginTop: 60,
-    marginBottom: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backButton: {
-    marginLeft: -10,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  form: {
-    gap: 15,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  input: {
-    height: 55,
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    fontSize: 16,
-  },
-  pickerContainer: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  dateButton: {
-    height: 55,
-    borderRadius: 12,
-    justifyContent: 'center',
-    paddingHorizontal: 15,
-  },
-  dateButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  dateButtonText: {
-    fontSize: 16,
-  },
-  saveButton: {
-    height: 55,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-    marginBottom: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  saveButtonText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  container: { flex: 1, paddingHorizontal: 20 },
+  header: { marginTop: 60, marginBottom: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  backButton: { marginLeft: -10 },
+  headerTitle: { fontSize: 22, fontWeight: 'bold' },
+  form: { gap: 15 },
+  label: { fontSize: 14, fontWeight: '600', textTransform: 'uppercase' },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
+  input: { height: 55, borderRadius: 12, paddingHorizontal: 15, fontSize: 16 },
+  pickerContainer: { borderRadius: 12, overflow: 'hidden' },
+  dateButton: { height: 55, borderRadius: 12, justifyContent: 'center', paddingHorizontal: 15 },
+  dateButtonContent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  dateButtonText: { fontSize: 16 },
+  saveButton: { height: 55, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 20, marginBottom: 40, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 5, elevation: 5 },
+  saveButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
 });

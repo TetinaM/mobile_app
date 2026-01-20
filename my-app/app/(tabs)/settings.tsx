@@ -10,17 +10,16 @@ import {
 } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Icon } from '../components/Icon';
-import { cancelAllReminders } from '../services/notifications';
+
+// ИСПРАВЛЕНО: используем @/ для импортов
+import { Icon } from '@/components/Icon';
+import { cancelAllReminders } from '@/services/notifications';
 
 export default function SettingsScreen() {
-  // get current color scheme (light or dark)
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const FIXED_ACCENT = '#0a7ea4';
 
-  const FIXED_ACCENT = '#0a7ea4'; // accent color for section titles and icons
-
-  // function to clear all reading reminders
   const handleClearNotifications = async () => {
     Alert.alert(
       'Clear Reminders',
@@ -31,7 +30,7 @@ export default function SettingsScreen() {
           text: 'Clear All',
           style: 'destructive',
           onPress: async () => {
-            await cancelAllReminders(); // call service to clear reminders
+            await cancelAllReminders();
             Alert.alert('Success', 'All reminders have been cleared.');
           },
         },
@@ -39,20 +38,17 @@ export default function SettingsScreen() {
     );
   };
 
-  // function to toggle theme between dark and light
   const toggleTheme = () => {
     const nextTheme = colorScheme === 'dark' ? 'light' : 'dark';
-    Appearance.setColorScheme(nextTheme); // change system color scheme
+    Appearance.setColorScheme(nextTheme);
   };
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* header with title */}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: theme.text }]}>Settings</Text>
       </View>
 
-      {/* Appearance section */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: FIXED_ACCENT }]}>Appearance</Text>
         <TouchableOpacity
@@ -68,7 +64,6 @@ export default function SettingsScreen() {
             <Text style={[styles.itemText, { color: theme.text }]}>Theme</Text>
           </View>
           <View style={styles.itemRight}>
-            {/* show current theme */}
             <Text style={[styles.statusText, { color: theme.icon }]}>
               {colorScheme === 'dark' ? 'Dark' : 'Light'}
             </Text>
@@ -77,7 +72,6 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Notifications section */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: FIXED_ACCENT }]}>Notifications</Text>
         <TouchableOpacity
@@ -85,7 +79,6 @@ export default function SettingsScreen() {
           onPress={handleClearNotifications}
         >
           <View style={styles.itemLeft}>
-            {/* icon for clearing reminders */}
             <Icon name="bell-remove-outline" size={22} color="#FF3B30" />
             <Text style={[styles.itemText, { color: theme.text }]}>Clear All Reminders</Text>
           </View>
@@ -93,7 +86,6 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* About section */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: FIXED_ACCENT }]}>About</Text>
         <View style={[styles.item, { backgroundColor: theme.cardBackground }]}>
@@ -109,52 +101,14 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  header: {
-    marginTop: 60,
-    marginBottom: 30,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  section: {
-    marginBottom: 25,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 8,
-    marginLeft: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 8,
-  },
-  itemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  itemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  itemText: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  statusText: {
-    fontSize: 14,
-  },
+  container: { flex: 1, paddingHorizontal: 20 },
+  header: { marginTop: 60, marginBottom: 30 },
+  headerTitle: { fontSize: 28, fontWeight: 'bold' },
+  section: { marginBottom: 25 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', marginBottom: 8, marginLeft: 4, textTransform: 'uppercase', letterSpacing: 1.2 },
+  item: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderRadius: 14, marginBottom: 8 },
+  itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  itemRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  itemText: { fontSize: 16, fontWeight: '500' },
+  statusText: { fontSize: 14 },
 });
