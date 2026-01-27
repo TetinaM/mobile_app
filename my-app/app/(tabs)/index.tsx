@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } fr
 import { useRouter, useFocusEffect } from 'expo-router';
 import { getBooks } from '../../storage/bookStorage';
 import { Book } from '../../types/Book';
-import BookCard from '../../components/BookCard';
+import {BookCard} from '../../components/BookCard';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Icon } from '../../components/Icon';

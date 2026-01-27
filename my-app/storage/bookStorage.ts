@@ -2,14 +2,24 @@ import * as SQLite from 'expo-sqlite';
 import { Book } from '../types/Book';
 
 const DB_NAME = 'library_v5.db';
+let dbInstance: SQLite.SQLiteDatabase | null = null;
 
-// 1. Инициализация Базы Данных
+// Get or create database instance
+const getDatabase = async (): Promise<SQLite.SQLiteDatabase> => {
+  if (dbInstance) return dbInstance;
+  
+  dbInstance = await SQLite.openDatabaseAsync(DB_NAME);
+  await dbInstance.execAsync('PRAGMA journal_mode = WAL;');
+  
+  return dbInstance;
+};
+
+// 1. Initialize Database
 export const initDatabase = async () => {
   try {
-    const db = await SQLite.openDatabaseAsync(DB_NAME);
+    const db = await getDatabase();
 
-    await db.execAsync('PRAGMA journal_mode = WAL;');
-    
+    // Create table with imageUri support
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS books (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,20 +28,22 @@ export const initDatabase = async () => {
         status TEXT DEFAULT 'planned',
         reminderTime TEXT,
         notes TEXT,
-        createdAt INTEGER
+        createdAt INTEGER,
+        imageUri TEXT
       );
     `);
     
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
+    throw error;
   }
 };
 
-// 2. Получить все книги
+// 2. Get all books
 export const getBooks = async (): Promise<Book[]> => {
   try {
-    const db = await SQLite.openDatabaseAsync(DB_NAME);
+    const db = await getDatabase();
     const allRows = await db.getAllAsync('SELECT * FROM books ORDER BY id DESC');
     return allRows.map((row: any) => ({ ...row, id: row.id.toString() }));
   } catch (error) {
@@ -40,20 +52,19 @@ export const getBooks = async (): Promise<Book[]> => {
   }
 };
 
-// 3. Добавить книгу (ИСПРАВЛЕНО: теперь принимает status)
-export const addBook = async (
-  title: string, 
-  author: string, 
-  status: string, // <--- Добавлен аргумент status
-  notes: string = '', 
-  reminderTime?: string
-) => {
+// 3. Add a book
+export const addBook = async (book: Omit<Book, 'id'>) => {
   try {
-    const db = await SQLite.openDatabaseAsync(DB_NAME);
+    const db = await getDatabase();
     const result = await db.runAsync(
-      // Теперь используем переданный status (4-й вопросительный знак)
-      'INSERT INTO books (title, author, notes, status, reminderTime, createdAt) VALUES (?, ?, ?, ?, ?, ?)',
-      title, author, notes, status, reminderTime ?? null, Date.now()
+      'INSERT INTO books (title, author, notes, status, reminderTime, createdAt, imageUri) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      book.title,
+      book.author,
+      book.notes ?? '',
+      book.status,
+      book.reminderTime ?? null,
+      Date.now(),
+      book.imageUri ?? null
     );
     return result.lastInsertRowId;
   } catch (error) {
@@ -62,20 +73,20 @@ export const addBook = async (
   }
 };
 
-// 4. Удалить книгу
+// 4. Delete a book
 export const deleteBook = async (id: string | number) => {
   try {
-    const db = await SQLite.openDatabaseAsync(DB_NAME);
+    const db = await getDatabase();
     await db.runAsync('DELETE FROM books WHERE id = ?', Number(id));
   } catch (error) {
     console.error('Error deleting book:', error);
   }
 };
 
-// 5. Получить книгу по ID
+// 5. Get book by ID
 export const getBookById = async (id: string): Promise<Book | null> => {
   try {
-    const db = await SQLite.openDatabaseAsync(DB_NAME);
+    const db = await getDatabase();
     const result = await db.getFirstAsync<any>(
       'SELECT * FROM books WHERE id = ?', 
       Number(id)
@@ -88,16 +99,18 @@ export const getBookById = async (id: string): Promise<Book | null> => {
   }
 };
 
-// 6. Обновить книгу
+// 6. Update a book
 export const updateBook = async (book: Book) => {
   try {
-    const db = await SQLite.openDatabaseAsync(DB_NAME);
+    const db = await getDatabase();
     await db.runAsync(
-      'UPDATE books SET title = ?, author = ?, status = ?, reminderTime = ? WHERE id = ?',
+      'UPDATE books SET title = ?, author = ?, status = ?, reminderTime = ?, notes = ?, imageUri = ? WHERE id = ?',
       book.title, 
       book.author, 
       book.status, 
       book.reminderTime ?? null, 
+      book.notes ?? '',
+      book.imageUri ?? null,
       Number(book.id)
     );
   } catch (error) {

@@ -3,5 +3,9 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
+  },
+  "typescript.tsserver.projectDiagnosticsEnabled": false,
+  "files.exclude": {
+    "**/node_modules": true
   }
 }

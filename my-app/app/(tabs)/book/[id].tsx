@@ -7,7 +7,7 @@ import DateTimePicker, { DateTimePickerEvent, DateTimePickerAndroid } from '@rea
 // Updated Imports:
 import { getBookById, updateBook, deleteBook } from '../../../storage/bookStorage';
 import { Book } from '../../../types/Book';
-import { scheduleReadingReminder } from '../../../services/notifications';
+import { scheduleReadingReminder, requestNotificationPermissions } from '../../../services/notifications';
 import { Icon } from '../../../components/Icon';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -53,7 +53,15 @@ export default function BookDetailsScreen() {
 
   const handleUpdate = async () => {
       await updateBook(book);
-      if (book.reminderTime) await scheduleReadingReminder(book.id, book.title, new Date(book.reminderTime));
+      if (book.reminderTime) {
+        // Request notification permissions before scheduling reminder
+        const permissionGranted = await requestNotificationPermissions();
+        if (permissionGranted) {
+          await scheduleReadingReminder(book.id, book.title, new Date(book.reminderTime));
+        } else {
+          Alert.alert('Permission Required', 'Please enable notification permissions to set reminders');
+        }
+      }
       handleBack();
   };
 

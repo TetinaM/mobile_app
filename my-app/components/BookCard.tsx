@@ -1,68 +1,135 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Book } from '../types/Book';
-import StatusBadge from './StatusBadge';
+import { StyleSheet, View, TouchableOpacity, Image } from 'react-native';
+import { useRouter } from 'expo-router';
+
+import { Book } from '@/types/Book';
+// ИСПРАВЛЕНО: имя файла themed-text (маленькими буквами, судя по ошибкам)
+import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+// ИСПРАВЛЕНО: StatusBadge это default export (без фигурных скобок)
+import StatusBadge from '@/components/StatusBadge';
+import { Icon } from '@/components/Icon';
 
 interface BookCardProps {
   book: Book;
   onPress?: () => void;
 }
 
-const BookCard: React.FC<BookCardProps> = ({ book, onPress }) => {
+export function BookCard({ book, onPress }: BookCardProps) {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
-
-  if (!book) return null;
+  
+  // Если onPress не передан, используем стандартную навигацию
+  const handlePress = onPress || (() => {
+    router.push(`/book/${book.id}`);
+  });
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
-        styles.card, 
+        styles.card,
         { 
-          backgroundColor: theme.cardBackground,
+          backgroundColor: theme.cardBackground || theme.background, // Fallback if cardBackground is missing
+          borderColor: theme.icon,
+          // Добавляем небольшую тень для iOS и Android
           shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
         }
-      ]} 
-      onPress={onPress}
+      ]}
+      onPress={handlePress}
       activeOpacity={0.7}
     >
-      {/* Container for title and status badge */}
       <View style={styles.row}>
-        <Text style={[styles.title, { color: theme.text }]}>{book.title}</Text>
-        <StatusBadge status={book.status} />
+        {/* 1. Обложка книги (слева) */}
+        {book.imageUri ? (
+          <Image 
+            source={{ uri: book.imageUri }} 
+            style={styles.cover} 
+          />
+        ) : (
+          /* Заглушка, если фото нет (опционально, можно убрать этот блок else, если не нужна иконка) */
+          <View style={[styles.cover, styles.placeholder, { backgroundColor: theme.icon + '20' }]}>
+            <Icon name="book-open-page-variant" size={32} color={theme.icon} />
+          </View>
+        )}
+
+        {/* 2. Текстовая информация (справа) */}
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <ThemedText type="defaultSemiBold" numberOfLines={2} style={styles.title}>
+              {book.title}
+            </ThemedText>
+            {/* Статус (справа сверху) */}
+            <StatusBadge status={book.status} />
+          </View>
+
+          <ThemedText style={{ color: theme.icon, marginTop: 4, fontSize: 14 }} numberOfLines={1}>
+            {book.author}
+          </ThemedText>
+          
+          {/* Дополнительная инфо (страницы, рейтинг или дата) - опционально */}
+          {book.totalPages && (
+            <View style={styles.footer}>
+              <Icon name="book-open-outline" size={14} color={theme.icon} />
+              <ThemedText style={{ color: theme.icon, fontSize: 12, marginLeft: 4 }}>
+                {book.currentPage || 0} / {book.totalPages} p.
+              </ThemedText>
+            </View>
+          )}
+        </View>
       </View>
-      <Text style={[styles.author, { color: theme.icon }]}>{book.author}</Text>
     </TouchableOpacity>
   );
-};
+}
 
 const styles = StyleSheet.create({
   card: {
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 12,
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 16,
+    // Граница опциональна, зависит от твоего дизайна
+    // borderWidth: 1, 
   },
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center', // Выравнивание по центру по вертикали (или 'flex-start' для верха)
+  },
+  cover: {
+    width: 70,
+    height: 105, // Пропорция 2:3
+    borderRadius: 8,
+    marginRight: 16,
+    backgroundColor: '#eee', // Цвет фона пока грузится
+  },
+  placeholder: {
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
+  },
+  content: {
+    flex: 1,
+    height: 105, // Чтобы растянуть контент по высоте картинки
+    justifyContent: 'space-between', // Распределить заголовок и подвал
+    paddingVertical: 4,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 8,
   },
   title: {
+    flex: 1, // Чтобы текст не наезжал на бейдж
     fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
+    lineHeight: 22,
   },
-  author: {
-    marginTop: 4,
-    fontSize: 14,
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 'auto', // Прижать к низу
   },
 });
-
-export default BookCard;

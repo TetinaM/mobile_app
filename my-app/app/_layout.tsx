@@ -3,19 +3,28 @@ import { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 // Updated import path:
 import { initDatabase } from '../storage/bookStorage';
+import { requestNotificationPermissions } from '../services/notifications';
 
 export default function RootLayout() {
   const [isDbReady, setIsDbReady] = useState(false);
 
   useEffect(() => {
-    initDatabase()
-      .then(() => {
+    const initApp = async () => {
+      try {
+        // Initialize database
+        await initDatabase();
+        
+        // Request notification permissions
+        await requestNotificationPermissions();
+        
         setIsDbReady(true);
-      })
-      .catch((e) => {
-        console.error('Database init failed:', e);
+      } catch (error) {
+        console.error('App initialization failed:', error);
         setIsDbReady(true);
-      });
+      }
+    };
+
+    initApp();
   }, []);
 
   if (!isDbReady) {

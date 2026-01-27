@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView,
-  Platform, KeyboardAvoidingView, Alert,
+  Platform, KeyboardAvoidingView, Alert, Image
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import DateTimePicker, { DateTimePickerEvent, DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
 
 import { addBook } from '../../../storage/bookStorage';
 import { scheduleReadingReminder } from '../../../services/notifications';
@@ -25,13 +26,44 @@ export default function CreateBookScreen() {
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [imageUri, setImageUri] = useState<string | null>(null);
 
   const handleReset = () => {
-    if (!title && !author && !reminderEnabled) return;
+    if (!title && !author && !reminderEnabled && !imageUri) return;
     Alert.alert('Reset', 'Clear fields?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Reset', style: 'destructive', onPress: () => { setTitle(''); setAuthor(''); setStatus('planned'); setReminderEnabled(false); } },
+      { 
+        text: 'Reset', 
+        style: 'destructive', 
+        onPress: () => { 
+          setTitle(''); 
+          setAuthor(''); 
+          setStatus('planned'); 
+          setReminderEnabled(false); 
+          setImageUri(null);
+        } 
+      },
     ]);
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please grant permission to access your gallery.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [2, 3],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
   };
 
   const handleDatePress = () => {
@@ -72,8 +104,15 @@ export default function CreateBookScreen() {
     try {
         const reminderTime = reminderEnabled ? date.toISOString() : undefined;
         
-        // ИСПРАВЛЕНИЕ: Передаем 'status' третьим аргументом
-        const newBookId = await addBook(title, author, status, '', reminderTime); 
+        // Updated to pass object structure matching new bookStorage.ts
+        const newBookId = await addBook({
+          title, 
+          author, 
+          status, 
+          notes: '', 
+          reminderTime,
+          imageUri: imageUri || undefined
+        }); 
         
         if (reminderEnabled && newBookId) {
            await scheduleReadingReminder(newBookId.toString(), title, date);
@@ -95,6 +134,20 @@ export default function CreateBookScreen() {
         </View>
 
         <View style={styles.form}>
+          {/* Image Picker Section */}
+          <View style={{ alignItems: 'center', marginBottom: 10 }}>
+            <TouchableOpacity onPress={pickImage} style={[styles.imagePlaceholder, { borderColor: theme.icon, backgroundColor: theme.cardBackground }]}>
+              {imageUri ? (
+                <Image source={{ uri: imageUri }} style={styles.coverImage} />
+              ) : (
+                <View style={{ alignItems: 'center' }}>
+                  <Icon name="camera-outline" size={40} color={theme.icon} />
+                  <Text style={{ color: theme.icon, marginTop: 8 }}>Add Cover</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
           <Text style={[styles.label, { color: FIXED_ACCENT_COLOR }]}>Title</Text>
           <TextInput style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text }]} value={title} onChangeText={setTitle} placeholder="Title" placeholderTextColor={theme.icon} />
 
@@ -136,4 +189,19 @@ const styles = StyleSheet.create({
   input: { height: 55, borderRadius: 12, paddingHorizontal: 15, fontSize: 16 },
   dateButton: { height: 55, borderRadius: 12, justifyContent: 'center', paddingHorizontal: 15 },
   saveButton: { height: 55, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 20, marginBottom: 40, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 5, elevation: 5 },
+  // Image styles
+  imagePlaceholder: {
+    width: 120,
+    height: 180,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+  },
 });
