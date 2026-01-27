@@ -10,8 +10,6 @@ import {
 } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-
-// ИСПРАВЛЕНО: используем @/ для импортов
 import { Icon } from '@/components/Icon';
 import { cancelAllReminders } from '@/services/notifications';
 

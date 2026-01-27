@@ -1,8 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
-
-// ИСПРАВЛЕНО: пути теперь ведут в корень через @/
 import { HapticTab } from '@/components/TabsHeader';
 import { Icon } from '@/components/Icon';
 import { Colors } from '@/constants/theme';
@@ -22,7 +20,7 @@ export default function TabLayout() {
         tabBarButton: (props) => <HapticTab {...props} />,
         tabBarStyle: Platform.select({
           ios: {
-            position: 'absolute', // Прозрачный фон на iOS
+            position: 'absolute',
           },
           default: {
             backgroundColor: theme.background,
@@ -55,7 +53,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Скрытый экран деталей книги */}
       <Tabs.Screen
         name="book/[id]"
         options={{

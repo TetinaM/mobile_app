@@ -11,10 +11,7 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-
-// ИСПРАВЛЕНО: используем @/ для импортов
 import { Icon } from '@/components/Icon';
-// ВАЖНО: Убедитесь, что BookCard.tsx тоже перенесен в папку components в корне!
 import BookCard from '@/components/BookCard'; 
 import { getBooks } from '@/storage/bookStorage';
 import { Book } from '@/types/Book';

@@ -6,7 +6,6 @@ import { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 export const HapticTab: React.FC<BottomTabBarButtonProps> = (props) => {
   const { onPress, children, ...rest } = props;
 
-  // Вибрация при нажатии (только моб. устройства)
   const handlePress = (event: any) => {
     if (Platform.OS !== 'web') {
       Haptics.selectionAsync();

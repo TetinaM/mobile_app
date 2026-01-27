@@ -13,8 +13,6 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import DateTimePicker, { DateTimePickerEvent, DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-
-// Используем @/ для всех импортов
 import { getBookById, updateBook, deleteBook } from '@/storage/bookStorage';
 import { Book } from '@/types/Book';
 import { scheduleReadingReminder } from '@/services/notifications';
@@ -52,9 +50,8 @@ export default function BookDetailsScreen() {
 
   const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
-        // На Android пикер закрывается сам
     } else {
-        setShowPicker(false); // На iOS закрываем вручную
+        setShowPicker(false);
     }
 
     if (event.type === 'set' && selectedDate) {
@@ -67,7 +64,7 @@ export default function BookDetailsScreen() {
       DateTimePickerAndroid.open({
         value: book.reminderTime ? new Date(book.reminderTime) : new Date(),
         onChange: onDateChange,
-        mode: 'date', // <--- ИСПРАВЛЕНО: было 'datetime', стало 'date'
+        mode: 'date',
         is24Hour: true,
         minimumDate: new Date(),
       });
@@ -175,7 +172,6 @@ export default function BookDetailsScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* DateTimePicker только для iOS */}
           {Platform.OS === 'ios' && showPicker && (
             <DateTimePicker
               value={book.reminderTime ? new Date(book.reminderTime) : new Date()}

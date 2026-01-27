@@ -12,12 +12,8 @@ import {
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
-// ВАЖНО: Добавили DateTimePickerAndroid
 import DateTimePicker, { DateTimePickerAndroid, DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import uuid from 'react-native-uuid';
-
-// ВАЖНО: Пути изменены на ../../../ (выход в корень проекта)
-// Если вы НЕ перенесли папки, верните их назад на ../../
 import { addBook } from '../../../storage/bookStorage';
 import { Book } from '../../../types/Book';
 import { scheduleReadingReminder } from '../../../services/notifications';
@@ -35,7 +31,6 @@ export default function CreateBookScreen() {
   const [author, setAuthor] = useState('');
   const [status, setStatus] = useState<'planned' | 'reading' | 'finished'>('planned');
   const [date, setDate] = useState(new Date());
-  // showPicker теперь используется ТОЛЬКО для iOS
   const [showPicker, setShowPicker] = useState(false);
   const [reminderEnabled, setReminderEnabled] = useState(false);
 
@@ -57,27 +52,19 @@ export default function CreateBookScreen() {
     ]);
   };
 
-  // Обновленная функция изменения даты
   const onDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
     if (Platform.OS === 'ios') {
-       // На iOS мы просто скрываем/показываем компонент по желанию, но здесь логика
-       // может отличаться. Обычно на iOS пикер всегда виден или скрывается кнопкой Done.
-       // Если используем модальный пикер:
-       // setShowPicker(false); 
     }
     
     if (event.type === 'set' && selectedDate) {
       setDate(selectedDate);
       setReminderEnabled(true);
     } else if (event.type === 'dismissed') {
-      // Если пользователь отменил выбор на Android
     }
   };
 
-  // Новая функция для открытия календаря
   const showDatepicker = () => {
     if (Platform.OS === 'android') {
-      // ИСПРАВЛЕНИЕ: Используем императивный API для Android
       DateTimePickerAndroid.open({
         value: date,
         onChange: onDateChange,
@@ -86,7 +73,6 @@ export default function CreateBookScreen() {
         minimumDate: new Date(),
       });
     } else {
-      // Для iOS просто переключаем стейт
       setShowPicker(!showPicker);
     }
   };
